@@ -57,12 +57,7 @@ class Trader:
             # -------------------- INTARIAN_PEPPER_ROOT
             # Fair value linéaire : intercept + slope * timestamp
             elif product == "INTARIAN_PEPPER_ROOT":
-
-                # Estimer l'intercept en ligne
-                # intercept = mid_price - slope * timestamp
                 current_intercept = mid - PEPPER_SLOPE * state.timestamp
-
-                # Moyenne mobile de l'intercept pour le stabiliser
                 intercept_hist = memory.get("pepper_intercept", [])
                 intercept_hist.append(current_intercept)
                 if len(intercept_hist) > 10:
@@ -72,22 +67,24 @@ class Trader:
                 intercept = sum(intercept_hist) / len(intercept_hist)
                 fv = intercept + PEPPER_SLOPE * state.timestamp
 
+                # Market taking — prendre les ordres clairement sous/sur la fv
                 for ask_price, ask_vol in sorted(order_depth.sell_orders.items()):
-                    if ask_price <= fv - 1 and buy_cap > 0:
+                    if ask_price < fv and buy_cap > 0:
                         qty = min(-ask_vol, buy_cap)
                         orders.append(Order(product, ask_price, qty))
                         buy_cap -= qty
 
                 for bid_price, bid_vol in sorted(order_depth.buy_orders.items(), reverse=True):
-                    if bid_price >= fv + 1 and sell_cap > 0:
+                    if bid_price > fv and sell_cap > 0:
                         qty = min(bid_vol, sell_cap)
                         orders.append(Order(product, bid_price, -qty))
                         sell_cap -= qty
 
+                # Market making — coller au book
                 if buy_cap > 0:
-                    orders.append(Order(product, round(fv) - 1, buy_cap))
+                    orders.append(Order(product, best_bid + 1, buy_cap))
                 if sell_cap > 0:
-                    orders.append(Order(product, round(fv) + 1, -sell_cap))
+                    orders.append(Order(product, best_ask - 1, -sell_cap))
 
             else:
                 pass
