@@ -65,8 +65,8 @@ class Trader:
                 # Moyenne mobile de l'intercept pour le stabiliser
                 intercept_hist = memory.get("pepper_intercept", [])
                 intercept_hist.append(current_intercept)
-                if len(intercept_hist) > 50:
-                    intercept_hist = intercept_hist[-50:]
+                if len(intercept_hist) > 10:
+                    intercept_hist = intercept_hist[-10:]
                 memory["pepper_intercept"] = intercept_hist
 
                 intercept = sum(intercept_hist) / len(intercept_hist)
